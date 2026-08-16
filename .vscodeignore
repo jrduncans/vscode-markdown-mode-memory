@@ -1,7 +1,14 @@
 .vscode/**
+.github/**
 src/**
+test/**
 .gitignore
+.nvmrc
+CONTRIBUTING.md
+eslint.config.mjs
+package-lock.json
 tsconfig.json
+tsconfig.test.json
 **/*.map
 **/*.ts
 node_modules/**

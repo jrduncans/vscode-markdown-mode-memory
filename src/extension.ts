@@ -1,25 +1,22 @@
 import * as vscode from 'vscode';
+import {
+	createGroupSnapshot,
+	detectGroupTransitions,
+	detectInPlaceTransition,
+	GroupSnapshot,
+	MarkdownMode,
+	MarkdownTabSnapshot,
+	ReplacementEventDetector
+} from './modeTransitionDetector';
 
-type MarkdownMode = 'source' | 'preview' | 'hybrid';
 type ManagementState = 'managing' | 'notManaging';
-
-interface MarkdownTab {
-	readonly group: vscode.TabGroup;
-	readonly mode: MarkdownMode;
-	readonly uri: vscode.Uri;
-}
-
-interface TimedMarkdownTab {
-	readonly tab: MarkdownTab;
-	readonly timestamp: number;
-}
+type MarkdownTab = MarkdownTabSnapshot<vscode.TabGroup>;
 
 interface OriginalAssociation {
 	readonly value: string | undefined;
 }
 
 type EditorAssociations = Record<string, string>;
-type GroupSnapshot = Map<string, Map<MarkdownMode, number>>;
 
 const MANAGEMENT_STATE_KEY = 'managementState';
 const ORIGINAL_ASSOCIATION_KEY = 'originalMarkdownAssociation';
@@ -48,8 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
 class MarkdownAssociationController implements vscode.Disposable {
 	private readonly tabSnapshots = new WeakMap<vscode.Tab, MarkdownTab>();
 	private readonly groupSnapshots = new WeakMap<vscode.TabGroup, GroupSnapshot>();
-	private recentClosedTabs: TimedMarkdownTab[] = [];
-	private recentOpenedTabs: TimedMarkdownTab[] = [];
+	private readonly replacementDetector = new ReplacementEventDetector<vscode.TabGroup>(REPLACEMENT_WINDOW_MS);
 	private updateQueue: Promise<void> = Promise.resolve();
 	private hasShownNoWorkspaceWarning = false;
 	private readonly disposables: vscode.Disposable[] = [];
@@ -119,7 +115,6 @@ class MarkdownAssociationController implements vscode.Disposable {
 
 	private observeTabChanges(event: vscode.TabChangeEvent): void {
 		const now = Date.now();
-		this.pruneRecentTabs(now);
 
 		// VS Code reports editor replacement as separate close and open events. Read
 		// closed tabs from snapshots taken while the tab was still valid.
@@ -127,7 +122,7 @@ class MarkdownAssociationController implements vscode.Disposable {
 			const closedMarkdownTab = this.tabSnapshots.get(closedTab);
 			this.tabSnapshots.delete(closedTab);
 			if (closedMarkdownTab) {
-				this.observeClosedTab(closedMarkdownTab, now);
+				this.queueDetectedTransition(this.replacementDetector.observeClosed(closedMarkdownTab, now));
 			}
 		}
 
@@ -136,16 +131,14 @@ class MarkdownAssociationController implements vscode.Disposable {
 		for (const changedTab of event.changed) {
 			const previous = this.tabSnapshots.get(changedTab);
 			const current = this.getMarkdownTab(changedTab);
-			if (previous && current && this.isSameEditorSlot(previous, current) && previous.mode !== current.mode) {
-				this.queueWorkspacePreferenceUpdate(current.mode);
-			}
+			this.queueDetectedTransition(detectInPlaceTransition(previous, current));
 			this.saveSnapshot(changedTab, current);
 		}
 
 		for (const openedTab of event.opened) {
 			const openedMarkdownTab = this.getMarkdownTab(openedTab);
 			if (openedMarkdownTab) {
-				this.observeOpenedTab(openedMarkdownTab, now);
+				this.queueDetectedTransition(this.replacementDetector.observeOpened(openedMarkdownTab, now));
 			}
 			this.saveSnapshot(openedTab, openedMarkdownTab);
 		}
@@ -161,7 +154,9 @@ class MarkdownAssociationController implements vscode.Disposable {
 			const previous = this.groupSnapshots.get(group);
 			const current = this.createGroupSnapshot(group);
 			if (previous) {
-				this.observeGroupReplacement(previous, current);
+				for (const mode of detectGroupTransitions(previous, current)) {
+					this.queueWorkspacePreferenceUpdate(mode);
+				}
 			}
 		}
 
@@ -170,75 +165,6 @@ class MarkdownAssociationController implements vscode.Disposable {
 		}
 
 		this.snapshotOpenTabs();
-	}
-
-	private observeGroupReplacement(previous: GroupSnapshot, current: GroupSnapshot): void {
-		for (const [uri, previousModes] of previous) {
-			const currentModes = current.get(uri);
-			if (!currentModes) {
-				continue;
-			}
-
-			const removedModes = this.modeCountDifference(previousModes, currentModes);
-			const addedModes = this.modeCountDifference(currentModes, previousModes);
-			if (removedModes.length === 1 && addedModes.length === 1 && removedModes[0] !== addedModes[0]) {
-				this.queueWorkspacePreferenceUpdate(addedModes[0]);
-			}
-		}
-	}
-
-	private modeCountDifference(
-		left: ReadonlyMap<MarkdownMode, number>,
-		right: ReadonlyMap<MarkdownMode, number>
-	): MarkdownMode[] {
-		const difference: MarkdownMode[] = [];
-		for (const mode of ['source', 'preview', 'hybrid'] as const) {
-			const count = (left.get(mode) ?? 0) - (right.get(mode) ?? 0);
-			for (let index = 0; index < count; index += 1) {
-				difference.push(mode);
-			}
-		}
-		return difference;
-	}
-
-	private observeClosedTab(closedTab: MarkdownTab, now: number): void {
-		const matchingOpening = this.recentOpenedTabs.findIndex(candidate => this.isSameEditorSlot(candidate.tab, closedTab));
-		if (matchingOpening >= 0) {
-			const [opened] = this.recentOpenedTabs.splice(matchingOpening, 1);
-			if (opened.tab.mode !== closedTab.mode) {
-				this.queueWorkspacePreferenceUpdate(opened.tab.mode);
-				return;
-			}
-		}
-
-		// A same-mode open/close can immediately precede another open in a
-		// different mode, so keep this closure available for that transition.
-		this.recentClosedTabs.push({ tab: closedTab, timestamp: now });
-	}
-
-	private observeOpenedTab(openedTab: MarkdownTab, now: number): void {
-		const matchingClosure = this.recentClosedTabs.findIndex(candidate => this.isSameEditorSlot(candidate.tab, openedTab));
-		if (matchingClosure >= 0) {
-			const [closed] = this.recentClosedTabs.splice(matchingClosure, 1);
-			if (closed.tab.mode !== openedTab.mode) {
-				this.queueWorkspacePreferenceUpdate(openedTab.mode);
-				return;
-			}
-		}
-
-		// Keep a same-mode reopening available in case VS Code reports the close
-		// half of an editor replacement after the open half.
-		this.recentOpenedTabs.push({ tab: openedTab, timestamp: now });
-	}
-
-	private isSameEditorSlot(left: MarkdownTab, right: MarkdownTab): boolean {
-		return left.group === right.group && left.uri.toString() === right.uri.toString();
-	}
-
-	private pruneRecentTabs(now: number): void {
-		const isRecent = (candidate: TimedMarkdownTab) => now - candidate.timestamp <= REPLACEMENT_WINDOW_MS;
-		this.recentClosedTabs = this.recentClosedTabs.filter(isRecent);
-		this.recentOpenedTabs = this.recentOpenedTabs.filter(isRecent);
 	}
 
 	private snapshotOpenTabs(): void {
@@ -251,19 +177,14 @@ class MarkdownAssociationController implements vscode.Disposable {
 	}
 
 	private createGroupSnapshot(group: vscode.TabGroup): GroupSnapshot {
-		const snapshot: GroupSnapshot = new Map();
+		const markdownTabs: MarkdownTab[] = [];
 		for (const tab of group.tabs) {
 			const markdownTab = this.getMarkdownTab(tab);
-			if (!markdownTab) {
-				continue;
+			if (markdownTab) {
+				markdownTabs.push(markdownTab);
 			}
-
-			const uri = markdownTab.uri.toString();
-			const modes = snapshot.get(uri) ?? new Map<MarkdownMode, number>();
-			modes.set(markdownTab.mode, (modes.get(markdownTab.mode) ?? 0) + 1);
-			snapshot.set(uri, modes);
 		}
-		return snapshot;
+		return createGroupSnapshot(markdownTabs);
 	}
 
 	private saveSnapshot(tab: vscode.Tab, markdownTab: MarkdownTab | undefined): void {
@@ -271,6 +192,12 @@ class MarkdownAssociationController implements vscode.Disposable {
 			this.tabSnapshots.set(tab, markdownTab);
 		} else {
 			this.tabSnapshots.delete(tab);
+		}
+	}
+
+	private queueDetectedTransition(mode: MarkdownMode | undefined): void {
+		if (mode) {
+			this.queueWorkspacePreferenceUpdate(mode);
 		}
 	}
 
@@ -388,7 +315,9 @@ class MarkdownAssociationController implements vscode.Disposable {
 
 		const input = tab.input;
 		if (input instanceof vscode.TabInputText) {
-			return this.isMarkdownResource(input.uri) ? { group: tab.group, mode: 'source', uri: input.uri } : undefined;
+			return this.isMarkdownResource(input.uri)
+				? { group: tab.group, mode: 'source', resource: input.uri.toString() }
+				: undefined;
 		}
 
 		if (input instanceof vscode.TabInputCustom
@@ -397,7 +326,7 @@ class MarkdownAssociationController implements vscode.Disposable {
 			return {
 				group: tab.group,
 				mode: input.viewType === MARKDOWN_PREVIEW_EDITOR ? 'preview' : 'hybrid',
-				uri: input.uri
+				resource: input.uri.toString()
 			};
 		}
 
