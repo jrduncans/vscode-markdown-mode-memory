@@ -35,6 +35,9 @@ Publishing the GitHub Release runs the release workflow. It validates the
 extension, builds `markdown-mode-memory.vsix`, attaches it to the GitHub
 Release, and does not require publishing credentials.
 
+To retry packaging for an existing release, run the Release workflow manually
+with the release tag and its prerelease status.
+
 After the workflow completes, download `markdown-mode-memory.vsix` from the
 GitHub Release and upload it through the [Visual Studio Marketplace publisher
 management page](https://marketplace.visualstudio.com/manage/publishers/). If
