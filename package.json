@@ -1,0 +1,66 @@
+{
+  "name": "markdown-mode-memory",
+  "displayName": "Markdown Mode Memory",
+  "description": "Remember the Markdown editor mode you last selected for each workspace.",
+  "version": "0.1.0",
+  "publisher": "jrduncans",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory.git"
+  },
+  "homepage": "https://github.com/jrduncans/vscode-markdown-mode-memory#readme",
+  "bugs": {
+    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory/issues"
+  },
+  "keywords": [
+    "markdown",
+    "preview",
+    "editor",
+    "workspace",
+    "productivity"
+  ],
+  "pricing": "Free",
+  "engines": {
+    "vscode": "^1.131.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdownModeMemory.startManagingWorkspace",
+        "title": "Markdown Mode Memory: Start Managing This Workspace"
+      },
+      {
+        "command": "markdownModeMemory.stopManagingAndRestorePreference",
+        "title": "Markdown Mode Memory: Stop Managing and Restore Previous Preference"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "lint": "eslint src test",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:types": "tsc -p tsconfig.test.json",
+    "watch": "tsc -w -p .",
+    "check": "npm run compile && npm run test:types && npm run lint && npm test",
+    "package:vsix": "vsce package --out markdown-mode-memory.vsix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.15.3",
+    "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "^10.8.1",
+    "tsx": "^4.23.12",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}
