@@ -10,7 +10,7 @@ Requirements:
 Install dependencies and validate the extension:
 
 ```sh
-npm ci
+npm ci --omit=optional
 npm run check
 ```
 
