@@ -1,0 +1,44 @@
+{
+  "name": "markdown-mode-memory",
+  "displayName": "Markdown Mode Memory",
+  "description": "Remember the Markdown editor mode you last selected for each workspace.",
+  "version": "0.1.0",
+  "publisher": "jrduncans",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory.git"
+  },
+  "engines": {
+    "vscode": "^1.131.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdownModeMemory.startManagingWorkspace",
+        "title": "Markdown Mode Memory: Start Managing This Workspace"
+      },
+      {
+        "command": "markdownModeMemory.stopManagingAndRestorePreference",
+        "title": "Markdown Mode Memory: Stop Managing and Restore Previous Preference"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "check": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/vscode": "^1.125.0",
+    "typescript": "^5.8.3"
+  }
+}
