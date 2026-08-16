@@ -4,7 +4,7 @@
 
 Requirements:
 
-- Node.js 22
+- Node.js 24
 - Visual Studio Code 1.131 or later
 
 Install dependencies and validate the extension:
