@@ -4,6 +4,11 @@
   "description": "Remember the Markdown editor mode you last selected for each workspace.",
   "version": "0.1.0",
   "publisher": "jrduncans",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1738CC",
+    "theme": "dark"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
