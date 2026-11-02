@@ -62,10 +62,10 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/vscode": "1.125.0",
-    "@vscode/vsce": "^4.0.0",
-    "eslint": "^10.13.0",
+    "@vscode/vsce": "^4.1.0",
+    "eslint": "^10.14.0",
     "tsx": "^4.23.15",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript-eslint": "^8.72.1"
   }
 }
