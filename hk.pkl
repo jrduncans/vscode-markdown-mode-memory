@@ -1,0 +1,65 @@
+amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
+
+import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
+// Using a coding agent? See https://hk.jdx.dev/agents
+
+// Top-level steps also form the check, fix and pre-commit hooks.
+local linters = new Mapping<String, Step> {
+  // File hygiene
+  ["trailing_whitespace"] = Builtins.trailing_whitespace
+  ["newlines"] = Builtins.newlines
+  ["mixed_line_ending"] = Builtins.mixed_line_ending
+  ["byte_order_marker"] = Builtins.byte_order_marker
+  ["check_merge_conflict"] = Builtins.check_merge_conflict
+  ["check_case_conflict"] = Builtins.check_case_conflict
+  ["check_symlinks"] = Builtins.check_symlinks
+  ["check_executables_have_shebangs"] = Builtins.check_executables_have_shebangs
+  ["check_shebang_scripts_are_executable"] = Builtins.check_shebang_scripts_are_executable
+  ["check_added_large_files"] = Builtins.check_added_large_files
+
+  // Secrets and spelling
+  ["gitleaks"] = Builtins.gitleaks
+  ["typos"] = Builtins.typos
+
+  // TypeScript / JavaScript / JSON / YAML / Markdown
+  ["prettier"] = Builtins.prettier
+  // Type-aware rules from eslint.config.mjs; they need `npm ci` for typescript-eslint.
+  ["eslint"] = (Builtins.eslint) {
+    glob = List("src/**/*.ts", "test/**/*.ts")
+  }
+  ["knip"] = Builtins.knip
+  ["sort_package_json"] = Builtins.sort_package_json
+  ["rumdl"] = Builtins.rumdl
+
+  // GitHub Actions workflows and Dependabot configuration
+  ["jactionlint"] = Builtins.jactionlint
+  ["zizmor"] = Builtins.zizmor
+  ["pinact"] = Builtins.pinact
+
+  // Tool configuration
+  ["mise"] = Builtins.mise
+  ["pkl"] = Builtins.pkl
+  ["pkl_format"] = Builtins.pkl_format
+}
+
+steps = linters
+
+hooks {
+  // Keeps the top-level steps; this one only makes sense for a commit, so
+  // `hk check` and CI (which runs on main) skip it.
+  ["pre-commit"] {
+    steps {
+      ["no_commit_to_branch"] = Builtins.no_commit_to_branch
+    }
+  }
+  ["pre-push"] {
+    steps {
+      // Compiles to dist/, type-checks the tests and runs the unit tests.
+      ["npm_check"] = new Step {
+        check = new CommandSpec { command = "npm run check"; effect = "write" }
+      }
+      // Queries the OSV database, so it runs here rather than per commit.
+      ["osv_scanner"] = Builtins.osv_scanner
+    }
+  }
+}

@@ -1,23 +1,11 @@
 {
   "name": "markdown-mode-memory",
   "displayName": "Markdown Mode Memory",
-  "description": "Remember the Markdown editor mode you last selected for each workspace.",
   "version": "0.1.0",
-  "publisher": "jrduncans",
-  "icon": "images/icon.png",
-  "galleryBanner": {
-    "color": "#1738CC",
-    "theme": "dark"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory.git"
-  },
-  "homepage": "https://github.com/jrduncans/vscode-markdown-mode-memory#readme",
-  "bugs": {
-    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory/issues"
-  },
+  "description": "Remember the Markdown editor mode you last selected for each workspace.",
+  "categories": [
+    "Other"
+  ],
   "keywords": [
     "markdown",
     "preview",
@@ -25,17 +13,26 @@
     "workspace",
     "productivity"
   ],
-  "pricing": "Free",
-  "engines": {
-    "vscode": "^1.131.0"
+  "homepage": "https://github.com/jrduncans/vscode-markdown-mode-memory#readme",
+  "bugs": {
+    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory/issues"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrduncans/vscode-markdown-mode-memory.git"
+  },
+  "license": "MIT",
+  "publisher": "jrduncans",
   "main": "./dist/extension.js",
+  "scripts": {
+    "check": "npm run compile && npm run test:types && npm test",
+    "compile": "tsc -p .",
+    "package:vsix": "vsce package --out markdown-mode-memory.vsix",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:types": "tsc -p tsconfig.test.json",
+    "vscode:prepublish": "npm run compile",
+    "watch": "tsc -w -p ."
+  },
   "contributes": {
     "commands": [
       {
@@ -48,24 +45,30 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p .",
-    "lint": "eslint src test",
-    "test": "node --import tsx --test test/*.test.ts",
-    "test:types": "tsc -p tsconfig.test.json",
-    "watch": "tsc -w -p .",
-    "check": "npm run compile && npm run test:types && npm run lint && npm test",
-    "package:vsix": "vsce package --out markdown-mode-memory.vsix"
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "overrides": {
+    "@vscode/vsce": {
+      "minimatch": "^11.0.9"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/vscode": "1.125.0",
     "@vscode/vsce": "^4.1.1",
-    "eslint": "^10.14.0",
     "tsx": "^4.23.15",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.72.2"
-  }
+  },
+  "engines": {
+    "vscode": "^1.131.0"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1738CC",
+    "theme": "dark"
+  },
+  "pricing": "Free"
 }

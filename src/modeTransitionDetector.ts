@@ -19,10 +19,12 @@ export function detectInPlaceTransition<Group>(
 	previous: MarkdownTabSnapshot<Group> | undefined,
 	current: MarkdownTabSnapshot<Group> | undefined
 ): MarkdownMode | undefined {
-	if (previous
-		&& current
-		&& isSameEditorSlot(previous, current)
-		&& previous.mode !== current.mode) {
+	if (
+		previous &&
+		current &&
+		isSameEditorSlot(previous, current) &&
+		previous.mode !== current.mode
+	) {
 		return current.mode;
 	}
 
@@ -33,12 +35,17 @@ export class ReplacementEventDetector<Group> {
 	private recentClosedTabs: TimedMarkdownTab<Group>[] = [];
 	private recentOpenedTabs: TimedMarkdownTab<Group>[] = [];
 
-	public constructor(private readonly replacementWindowMs: number) { }
+	public constructor(private readonly replacementWindowMs: number) {}
 
-	public observeClosed(tab: MarkdownTabSnapshot<Group>, timestamp: number): MarkdownMode | undefined {
+	public observeClosed(
+		tab: MarkdownTabSnapshot<Group>,
+		timestamp: number
+	): MarkdownMode | undefined {
 		this.prune(timestamp);
 
-		const matchingOpening = this.recentOpenedTabs.findIndex(candidate => isSameEditorSlot(candidate.tab, tab));
+		const matchingOpening = this.recentOpenedTabs.findIndex((candidate) =>
+			isSameEditorSlot(candidate.tab, tab)
+		);
 		if (matchingOpening >= 0) {
 			const [opened] = this.recentOpenedTabs.splice(matchingOpening, 1);
 			if (opened.tab.mode !== tab.mode) {
@@ -52,10 +59,15 @@ export class ReplacementEventDetector<Group> {
 		return undefined;
 	}
 
-	public observeOpened(tab: MarkdownTabSnapshot<Group>, timestamp: number): MarkdownMode | undefined {
+	public observeOpened(
+		tab: MarkdownTabSnapshot<Group>,
+		timestamp: number
+	): MarkdownMode | undefined {
 		this.prune(timestamp);
 
-		const matchingClosure = this.recentClosedTabs.findIndex(candidate => isSameEditorSlot(candidate.tab, tab));
+		const matchingClosure = this.recentClosedTabs.findIndex((candidate) =>
+			isSameEditorSlot(candidate.tab, tab)
+		);
 		if (matchingClosure >= 0) {
 			const [closed] = this.recentClosedTabs.splice(matchingClosure, 1);
 			if (closed.tab.mode !== tab.mode) {
@@ -77,7 +89,9 @@ export class ReplacementEventDetector<Group> {
 	}
 }
 
-export function createGroupSnapshot<Group>(tabs: Iterable<MarkdownTabSnapshot<Group>>): GroupSnapshot {
+export function createGroupSnapshot<Group>(
+	tabs: Iterable<MarkdownTabSnapshot<Group>>
+): GroupSnapshot {
 	const snapshot = new Map<string, Map<MarkdownMode, number>>();
 	for (const tab of tabs) {
 		const modes = snapshot.get(tab.resource) ?? new Map<MarkdownMode, number>();
@@ -87,7 +101,10 @@ export function createGroupSnapshot<Group>(tabs: Iterable<MarkdownTabSnapshot<Gr
 	return snapshot;
 }
 
-export function detectGroupTransitions(previous: GroupSnapshot, current: GroupSnapshot): MarkdownMode[] {
+export function detectGroupTransitions(
+	previous: GroupSnapshot,
+	current: GroupSnapshot
+): MarkdownMode[] {
 	const transitions: MarkdownMode[] = [];
 	for (const [resource, previousModes] of previous) {
 		const currentModes = current.get(resource);
@@ -104,7 +121,10 @@ export function detectGroupTransitions(previous: GroupSnapshot, current: GroupSn
 	return transitions;
 }
 
-function isSameEditorSlot<Group>(left: MarkdownTabSnapshot<Group>, right: MarkdownTabSnapshot<Group>): boolean {
+function isSameEditorSlot<Group>(
+	left: MarkdownTabSnapshot<Group>,
+	right: MarkdownTabSnapshot<Group>
+): boolean {
 	return left.group === right.group && left.resource === right.resource;
 }
 

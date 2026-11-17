@@ -4,17 +4,54 @@
 
 Requirements:
 
-- Node.js 24
+- [mise](https://mise.jdx.dev)
 - Visual Studio Code 1.131 or later
 
-Install dependencies and validate the extension:
+`mise.toml` pins every tool the project uses: Node.js, and hk with the linters
+it runs. Install them and the npm dependencies, then validate the extension:
 
 ```sh
+mise install
 npm ci --omit=optional
+hk check --all
 npm run check
 ```
 
-`npm run check` type-checks the extension and tests, runs ESLint, and executes the unit test suite.
+`npm run check` compiles the extension, type-checks the tests, and executes the
+unit test suite.
+
+### Linting and formatting
+
+[hk](https://hk.jdx.dev) runs these checks (configured in `hk.pkl`):
+
+- File hygiene: trailing whitespace, final newlines, line endings, byte order
+  marks, merge-conflict markers, case conflicts, broken symlinks, shebangs, and
+  large files
+- Secrets and spelling: gitleaks and typos
+- Code: Prettier, ESLint, knip (unused files, exports, and dependencies), and
+  sort-package-json
+- Markdown: rumdl (configured in `.rumdl.toml`)
+- GitHub Actions and Dependabot: jactionlint, zizmor, and pinact (actions are
+  pinned to commit SHAs)
+- Tool configuration: `mise fmt` and pkl
+
+Check or fix every file with:
+
+```sh
+hk check --all
+hk fix --all
+```
+
+Run `hk install --mise` to install the git hooks. On commit, hk checks and fixes
+staged files and refuses commits to `main`. On push, it runs `npm run check` and,
+when `package-lock.json` changed, scans it with osv-scanner. CI runs
+`hk check --all`.
+
+ESLint's type-aware rules load `typescript-eslint` from the project's
+dependencies, so run `npm ci` before linting. Run hk directly rather than from
+an npm script: `npm run` puts `node_modules/.bin` first on `PATH`, so hk would
+pick up the ESLint that `typescript-eslint` installs instead of the one pinned
+in `mise.toml`.
 
 Press `F5` in Visual Studio Code to launch an Extension Development Host for manual testing.
 
@@ -46,4 +83,4 @@ Marketplace prerelease channel during packaging.
 
 ## Pull requests
 
-Keep changes focused and describe the Markdown mode transitions you tested manually. Add or update tests when changing transition detection. CI must compile, lint, test, and package the extension successfully.
+Keep changes focused and describe the Markdown mode transitions you tested manually. Add or update tests when changing transition detection. CI must pass `hk check --all`, compile, test, and package the extension successfully.

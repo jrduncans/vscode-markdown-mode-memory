@@ -8,6 +8,8 @@ updates:
       time: "09:00"
       timezone: America/Los_Angeles
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: "@types/node"
         update-types:
@@ -33,6 +35,8 @@ updates:
       time: "09:00"
       timezone: America/Los_Angeles
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:

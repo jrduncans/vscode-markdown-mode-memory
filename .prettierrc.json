@@ -1,0 +1,10 @@
+{
+  "printWidth": 100,
+  "trailingComma": "none",
+  "overrides": [
+    {
+      "files": ["*.ts", "*.mts", "*.cts", "*.js", "*.mjs", "*.cjs"],
+      "options": { "useTabs": true, "singleQuote": true }
+    }
+  ]
+}

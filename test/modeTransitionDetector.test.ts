@@ -96,24 +96,15 @@ test('detects replacement of one of several duplicate-resource tabs', () => {
 });
 
 test('detects independent replacements for multiple resources', () => {
-	const previous = createGroupSnapshot([
-		tab('source', notes),
-		tab('preview', readme)
-	]);
-	const current = createGroupSnapshot([
-		tab('preview', notes),
-		tab('hybrid', readme)
-	]);
+	const previous = createGroupSnapshot([tab('source', notes), tab('preview', readme)]);
+	const current = createGroupSnapshot([tab('preview', notes), tab('hybrid', readme)]);
 
 	assert.deepEqual(detectGroupTransitions(previous, current), ['preview', 'hybrid']);
 });
 
 test('ignores ordinary opens, closes, and unchanged group rebuilds', () => {
 	const sourceOnly = createGroupSnapshot([tab('source', notes)]);
-	const sourceAndReadme = createGroupSnapshot([
-		tab('source', notes),
-		tab('source', readme)
-	]);
+	const sourceAndReadme = createGroupSnapshot([tab('source', notes), tab('source', readme)]);
 
 	assert.deepEqual(detectGroupTransitions(sourceOnly, sourceAndReadme), []);
 	assert.deepEqual(detectGroupTransitions(sourceAndReadme, sourceOnly), []);

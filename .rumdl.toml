@@ -1,0 +1,4 @@
+# Settings for rumdl (run by hk; see hk.pkl). Prettier owns Markdown formatting.
+[global]
+# Prose keeps its existing line breaks (Prettier's proseWrap: preserve).
+disable = ["MD013"]
