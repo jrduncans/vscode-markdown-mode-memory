@@ -30,13 +30,11 @@ export function activate(context: vscode.ExtensionContext): void {
 	const controller = new MarkdownAssociationController(context);
 	context.subscriptions.push(controller);
 	context.subscriptions.push(
-		vscode.commands.registerCommand(
-			'markdownModeMemory.startManagingWorkspace',
-			() => controller.startManagingWorkspace()
+		vscode.commands.registerCommand('markdownModeMemory.startManagingWorkspace', () =>
+			controller.startManagingWorkspace()
 		),
-		vscode.commands.registerCommand(
-			'markdownModeMemory.stopManagingAndRestorePreference',
-			() => controller.stopManagingAndRestorePreference()
+		vscode.commands.registerCommand('markdownModeMemory.stopManagingAndRestorePreference', () =>
+			controller.stopManagingAndRestorePreference()
 		)
 	);
 	controller.start();
@@ -45,7 +43,9 @@ export function activate(context: vscode.ExtensionContext): void {
 class MarkdownAssociationController implements vscode.Disposable {
 	private readonly tabSnapshots = new WeakMap<vscode.Tab, MarkdownTab>();
 	private readonly groupSnapshots = new WeakMap<vscode.TabGroup, GroupSnapshot>();
-	private readonly replacementDetector = new ReplacementEventDetector<vscode.TabGroup>(REPLACEMENT_WINDOW_MS);
+	private readonly replacementDetector = new ReplacementEventDetector<vscode.TabGroup>(
+		REPLACEMENT_WINDOW_MS
+	);
 	private updateQueue: Promise<void> = Promise.resolve();
 	private hasShownNoWorkspaceWarning = false;
 	private readonly disposables: vscode.Disposable[] = [];
@@ -57,8 +57,8 @@ class MarkdownAssociationController implements vscode.Disposable {
 
 	public start(): void {
 		this.disposables.push(
-			vscode.window.tabGroups.onDidChangeTabs(event => this.observeTabChanges(event)),
-			vscode.window.tabGroups.onDidChangeTabGroups(event => this.observeTabGroupChanges(event))
+			vscode.window.tabGroups.onDidChangeTabs((event) => this.observeTabChanges(event)),
+			vscode.window.tabGroups.onDidChangeTabGroups((event) => this.observeTabGroupChanges(event))
 		);
 
 		this.snapshotOpenTabs();
@@ -68,33 +68,45 @@ class MarkdownAssociationController implements vscode.Disposable {
 		await this.updateQueue;
 
 		if (!this.hasWorkspace()) {
-			void vscode.window.showWarningMessage('Markdown Mode Memory needs an open folder or workspace to manage its Markdown editor preference.');
+			void vscode.window.showWarningMessage(
+				'Markdown Mode Memory needs an open folder or workspace to manage its Markdown editor preference.'
+			);
 			return;
 		}
 
 		if (this.managementState() === 'managing') {
-			void vscode.window.showInformationMessage('Markdown Mode Memory is already managing this workspace\'s Markdown editor preference.');
+			void vscode.window.showInformationMessage(
+				"Markdown Mode Memory is already managing this workspace's Markdown editor preference."
+			);
 			return;
 		}
 
 		await this.beginManaging();
-		void vscode.window.showInformationMessage('Markdown Mode Memory will remember the next Markdown view you select in this workspace.');
+		void vscode.window.showInformationMessage(
+			'Markdown Mode Memory will remember the next Markdown view you select in this workspace.'
+		);
 	}
 
 	public async stopManagingAndRestorePreference(): Promise<void> {
 		await this.updateQueue;
 
 		if (this.managementState() !== 'managing') {
-			void vscode.window.showInformationMessage('Markdown Mode Memory is not managing this workspace\'s Markdown editor preference.');
+			void vscode.window.showInformationMessage(
+				"Markdown Mode Memory is not managing this workspace's Markdown editor preference."
+			);
 			return;
 		}
 
 		if (!this.hasWorkspace()) {
-			void vscode.window.showWarningMessage('Markdown Mode Memory needs an open folder or workspace to restore its Markdown editor preference.');
+			void vscode.window.showWarningMessage(
+				'Markdown Mode Memory needs an open folder or workspace to restore its Markdown editor preference.'
+			);
 			return;
 		}
 
-		const original = this.context.workspaceState.get<OriginalAssociation>(ORIGINAL_ASSOCIATION_KEY) ?? { value: undefined };
+		const original = this.context.workspaceState.get<OriginalAssociation>(
+			ORIGINAL_ASSOCIATION_KEY
+		) ?? { value: undefined };
 		const associations = this.workspaceAssociations();
 		delete associations[MARKDOWN_GLOB];
 		if (original.value !== undefined) {
@@ -102,9 +114,14 @@ class MarkdownAssociationController implements vscode.Disposable {
 		}
 
 		await this.updateWorkspaceAssociations(associations);
-		await this.context.workspaceState.update(MANAGEMENT_STATE_KEY, 'notManaging' satisfies ManagementState);
+		await this.context.workspaceState.update(
+			MANAGEMENT_STATE_KEY,
+			'notManaging' satisfies ManagementState
+		);
 		await this.context.workspaceState.update(ORIGINAL_ASSOCIATION_KEY, undefined);
-		void vscode.window.showInformationMessage('Markdown Mode Memory stopped managing this workspace and restored its previous Markdown editor preference.');
+		void vscode.window.showInformationMessage(
+			'Markdown Mode Memory stopped managing this workspace and restored its previous Markdown editor preference.'
+		);
 	}
 
 	public dispose(): void {
@@ -122,7 +139,9 @@ class MarkdownAssociationController implements vscode.Disposable {
 			const closedMarkdownTab = this.tabSnapshots.get(closedTab);
 			this.tabSnapshots.delete(closedTab);
 			if (closedMarkdownTab) {
-				this.queueDetectedTransition(this.replacementDetector.observeClosed(closedMarkdownTab, now));
+				this.queueDetectedTransition(
+					this.replacementDetector.observeClosed(closedMarkdownTab, now)
+				);
 			}
 		}
 
@@ -138,7 +157,9 @@ class MarkdownAssociationController implements vscode.Disposable {
 		for (const openedTab of event.opened) {
 			const openedMarkdownTab = this.getMarkdownTab(openedTab);
 			if (openedMarkdownTab) {
-				this.queueDetectedTransition(this.replacementDetector.observeOpened(openedMarkdownTab, now));
+				this.queueDetectedTransition(
+					this.replacementDetector.observeOpened(openedMarkdownTab, now)
+				);
 			}
 			this.saveSnapshot(openedTab, openedMarkdownTab);
 		}
@@ -204,10 +225,12 @@ class MarkdownAssociationController implements vscode.Disposable {
 	private queueWorkspacePreferenceUpdate(mode: MarkdownMode): void {
 		this.updateQueue = this.updateQueue
 			.then(() => this.updateWorkspacePreference(mode))
-			.catch(error => {
-				const details = error instanceof Error ? error.stack ?? error.message : String(error);
+			.catch((error) => {
+				const details = error instanceof Error ? (error.stack ?? error.message) : String(error);
 				this.output.appendLine(`Could not update the workspace editor association.\n${details}`);
-				void vscode.window.showErrorMessage('Markdown Mode Memory could not update the workspace Markdown editor preference. See the Markdown Mode Memory output channel for details.');
+				void vscode.window.showErrorMessage(
+					'Markdown Mode Memory could not update the workspace Markdown editor preference. See the Markdown Mode Memory output channel for details.'
+				);
 			});
 	}
 
@@ -215,12 +238,14 @@ class MarkdownAssociationController implements vscode.Disposable {
 		if (!this.hasWorkspace()) {
 			if (!this.hasShownNoWorkspaceWarning) {
 				this.hasShownNoWorkspaceWarning = true;
-				void vscode.window.showWarningMessage('Markdown Mode Memory needs an open folder or workspace to remember a Markdown editor preference.');
+				void vscode.window.showWarningMessage(
+					'Markdown Mode Memory needs an open folder or workspace to remember a Markdown editor preference.'
+				);
 			}
 			return;
 		}
 
-		if (!await this.ensureManagementConsent()) {
+		if (!(await this.ensureManagementConsent())) {
 			return;
 		}
 
@@ -251,13 +276,17 @@ class MarkdownAssociationController implements vscode.Disposable {
 			'Remember the last Markdown view used in this workspace?',
 			{
 				modal: true,
-				detail: 'Markdown Mode Memory does this by updating this workspace\'s workbench.editorAssociations setting whenever you switch between source, preview, or hybrid view. This may modify .vscode/settings.json or the workspace file and can affect other people who use it.'
+				detail:
+					"Markdown Mode Memory does this by updating this workspace's workbench.editorAssociations setting whenever you switch between source, preview, or hybrid view. This may modify .vscode/settings.json or the workspace file and can affect other people who use it."
 			},
 			'Remember for This Workspace',
 			'Not for This Workspace'
 		);
 		if (choice !== 'Remember for This Workspace') {
-			await this.context.workspaceState.update(MANAGEMENT_STATE_KEY, 'notManaging' satisfies ManagementState);
+			await this.context.workspaceState.update(
+				MANAGEMENT_STATE_KEY,
+				'notManaging' satisfies ManagementState
+			);
 			return false;
 		}
 
@@ -270,7 +299,10 @@ class MarkdownAssociationController implements vscode.Disposable {
 		await this.context.workspaceState.update(ORIGINAL_ASSOCIATION_KEY, {
 			value: associations[MARKDOWN_GLOB]
 		} satisfies OriginalAssociation);
-		await this.context.workspaceState.update(MANAGEMENT_STATE_KEY, 'managing' satisfies ManagementState);
+		await this.context.workspaceState.update(
+			MANAGEMENT_STATE_KEY,
+			'managing' satisfies ManagementState
+		);
 	}
 
 	private managementState(): ManagementState | undefined {
@@ -278,8 +310,11 @@ class MarkdownAssociationController implements vscode.Disposable {
 	}
 
 	private hasWorkspace(): boolean {
-		return vscode.workspace.workspaceFile !== undefined
-			|| (vscode.workspace.workspaceFolders !== undefined && vscode.workspace.workspaceFolders.length > 0);
+		return (
+			vscode.workspace.workspaceFile !== undefined ||
+			(vscode.workspace.workspaceFolders !== undefined &&
+				vscode.workspace.workspaceFolders.length > 0)
+		);
 	}
 
 	private workspaceAssociations(): EditorAssociations {
@@ -290,11 +325,9 @@ class MarkdownAssociationController implements vscode.Disposable {
 
 	private async updateWorkspaceAssociations(associations: EditorAssociations): Promise<void> {
 		const value = Object.keys(associations).length > 0 ? associations : undefined;
-		await vscode.workspace.getConfiguration('workbench').update(
-			'editorAssociations',
-			value,
-			vscode.ConfigurationTarget.Workspace
-		);
+		await vscode.workspace
+			.getConfiguration('workbench')
+			.update('editorAssociations', value, vscode.ConfigurationTarget.Workspace);
 	}
 
 	private editorIdFor(mode: MarkdownMode): string {
@@ -320,9 +353,11 @@ class MarkdownAssociationController implements vscode.Disposable {
 				: undefined;
 		}
 
-		if (input instanceof vscode.TabInputCustom
-			&& (input.viewType === MARKDOWN_PREVIEW_EDITOR || input.viewType === MARKDOWN_HYBRID_EDITOR)
-			&& this.isMarkdownResource(input.uri)) {
+		if (
+			input instanceof vscode.TabInputCustom &&
+			(input.viewType === MARKDOWN_PREVIEW_EDITOR || input.viewType === MARKDOWN_HYBRID_EDITOR) &&
+			this.isMarkdownResource(input.uri)
+		) {
 			return {
 				group: tab.group,
 				mode: input.viewType === MARKDOWN_PREVIEW_EDITOR ? 'preview' : 'hybrid',
